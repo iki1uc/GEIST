@@ -2,71 +2,161 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>TMP – Systemkern (Zentral)</title>
+<title>IKI1UC · UNIVERSAL BOOTSTRAP</title>
 
 <style>
-body { background:#000; color:#0f0; font-family:monospace; padding:20px; }
-h1, h2 { color:#6cf; }
-a { color:#6cf; display:block; margin:8px 0; }
-pre { background:#111; border:1px solid #333; padding:10px; margin-bottom:20px; }
-.section { margin-bottom:30px; }
+body {
+    margin: 0;
+    background: #000;
+    color: #0ff;
+    font-family: Consolas;
+}
+#boot {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 12px;
+    border: 1px solid #0ff;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.5);
+    box-shadow: 0 0 12px #0ff;
+}
+#modules {
+    margin-top: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 12px;
+}
 </style>
+
+<script type="module">
+
+/* ————————————————————————————————
+   UNIVERSAL MODULE SCANNER
+——————————————————————————————— */
+
+async function scanRepository() {
+    const response = await fetch("./");
+    const text = await response.text();
+
+    // HTML Directory Listing Parser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, "text/html");
+
+    const links = [...doc.querySelectorAll("a")].map(a => a.getAttribute("href"));
+
+    // Filter JS, JSON, HTML modules
+    const modules = links.filter(f =>
+        f.endsWith(".js") ||
+        f.endsWith(".json") ||
+        f.endsWith(".html")
+    );
+
+    return modules;
+}
+
+/* ————————————————————————————————
+   UNIVERSAL MODULE LOADER
+——————————————————————————————— */
+
+async function loadModules(modules) {
+
+    const loaded = [];
+
+    for (const m of modules) {
+        try {
+            if (m.endsWith(".js")) {
+                await import(`./${m}`);
+                loaded.push({ file: m, type: "js", status: "OK" });
+            }
+            else if (m.endsWith(".json")) {
+                const data = await fetch(`./${m}`).then(r => r.json());
+                loaded.push({ file: m, type: "json", status: "OK", data });
+            }
+            else if (m.endsWith(".html")) {
+                loaded.push({ file: m, type: "html", status: "OK" });
+            }
+        } catch (e) {
+            loaded.push({ file: m, type: "error", status: "FAIL", error: e });
+        }
+    }
+
+    return loaded;
+}
+
+/* ————————————————————————————————
+   UNIVERSAL ENGINE STARTER
+——————————————————————————————— */
+
+function startUniverse(loaded) {
+
+    console.log("IKI1UC · UNIVERSUM STARTET …");
+    console.log("Geladene Module:", loaded);
+
+    // GLOBAL PALAISE UNIVERSE
+    window.UNIVERSE = {
+        modules: loaded,
+        timestamp: Date.now(),
+        start: "RUN∞",
+        state: {}
+    };
+
+    // Auto‑Start bekannte Engines
+    const autoEngines = [
+        "ALL.ultra.js",
+        "ALL.pipeline12.js",
+        "VECTOR.render.js",
+        "VECTOR.orbit.js",
+        "pipeline12.master.js",
+        "respo_bridge.js",
+        "ghost.js",
+        "ultra.kernel.js",
+        "API.system.js"
+    ];
+
+    for (const engine of autoEngines) {
+        const found = loaded.find(m => m.file.endsWith(engine));
+        if (found) {
+            console.log("Starte Engine:", engine);
+        }
+    }
+
+    // UI Update
+    const out = document.getElementById("modules");
+    out.innerHTML = loaded.map(m =>
+        `<div>${m.status} — ${m.file}</div>`
+    ).join("");
+}
+
+/* ————————————————————————————————
+   BOOTSTRAP
+——————————————————————————————— */
+
+(async function bootstrap() {
+
+    document.getElementById("status").innerText = "Scanning Repository…";
+
+    const modules = await scanRepository();
+
+    document.getElementById("status").innerText = "Loading Modules…";
+
+    const loaded = await loadModules(modules);
+
+    document.getElementById("status").innerText = "Starting Universe…";
+
+    startUniverse(loaded);
+
+    document.getElementById("status").innerText = "IKI1UC · UNIVERSUM AKTIV";
+})();
+</script>
 
 </head>
 <body>
 
-<h1>TMP – Systemkern (index.html)</h1>
-
-<div class="section">
-<pre>
-SYSTEM        = TMP
-KONSTELLATION = TMP
-FREQ          = 12e
-6D            = D2
-360°          = aktiv
-STATUS        = ZENTRALER KERN
-</pre>
-</div>
-
-<h2>Module</h2>
-<div class="section">
-<a href="./TMP.respo">TMP.respo – RESPO‑Node</a>
-<a href="./tmp.html">TMP – Zentrum‑Node</a>
-<a href="./ID.html">TMP – Identitäts‑Node</a>
-<a href="./room.html">TMP – Raum‑Node</a>
-<a href="./t.html">TMP – T‑Node</a>
-<a href="./h.html">TMP – H‑Node</a>
-<a href="./b.html">TMP – B‑Node</a>
-</div>
-
-<h2>RESPO‑Status</h2>
-<div class="section">
-<pre>
-ROOT     = TMP‑0
-ACHSE    = TMP‑A
-LAGE     = TMP‑LAGE
-PIPE     = aktiv
-SEQ.360  = D0 → D1 → D2 → D3 → D4 → D5 → D0
-</pre>
-</div>
-
-<h2>6D‑System</h2>
-<div class="section">
-<pre>
-D0 = ROOT
-D1 = ACHSE
-D2 = TMP
-D3 = LAGE
-D4 = laTER
-D5 = ORT
-</pre>
-</div>
-
-<h2>Frequenz</h2>
-<div class="section">
-<pre>
-FREQ.12 = iki → bir → uc → LE → iki1uc → GO → sys → tem → AU → RA → TET → RIZ
-</pre>
+<div id="boot">
+    <b>IKI1UC · UNIVERSAL BOOTSTRAP</b><br>
+    <span id="status">Init…</span>
+    <div id="modules"></div>
 </div>
 
 </body>
