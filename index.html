@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>IKI1UC · UNIVERSAL BOOTSTRAP</title>
+<title>IKI1UC · COSMIC CONTROL ROOM · RUN ∞</title>
 
 <style>
 body {
@@ -10,74 +10,86 @@ body {
     background: #000;
     color: #0ff;
     font-family: Consolas;
+    overflow: hidden;
 }
-#boot {
+
+/* Cosmic UI */
+#cosmic-ui {
     position: absolute;
     top: 10px;
     left: 10px;
+    width: 320px;
     padding: 12px;
     border: 1px solid #0ff;
-    border-radius: 8px;
-    background: rgba(0,0,0,0.5);
+    border-radius: 10px;
+    background: rgba(0,0,0,0.45);
     box-shadow: 0 0 12px #0ff;
 }
-#modules {
-    margin-top: 10px;
-    max-height: 400px;
+
+.section {
+    margin-bottom: 12px;
+}
+
+.section-title {
+    font-size: 14px;
+    color: #0ff;
+    margin-bottom: 6px;
+    text-shadow: 0 0 6px #0ff;
+}
+
+#module-list {
+    max-height: 300px;
     overflow-y: auto;
     font-size: 12px;
+}
+
+canvas {
+    position: absolute;
+    right: 0;
+    top: 0;
 }
 </style>
 
 <script type="module">
 
 /* ————————————————————————————————
-   UNIVERSAL MODULE SCANNER
+   1) UNIVERSUM-SCANNER
 ——————————————————————————————— */
 
-async function scanRepository() {
-    const response = await fetch("./");
-    const text = await response.text();
+async function scanRepo() {
+    const res = await fetch("./");
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
 
-    // HTML Directory Listing Parser
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(text, "text/html");
+    const files = [...doc.querySelectorAll("a")]
+        .map(a => a.getAttribute("href"))
+        .filter(f => f.match(/\.(js|json|html)$/));
 
-    const links = [...doc.querySelectorAll("a")].map(a => a.getAttribute("href"));
-
-    // Filter JS, JSON, HTML modules
-    const modules = links.filter(f =>
-        f.endsWith(".js") ||
-        f.endsWith(".json") ||
-        f.endsWith(".html")
-    );
-
-    return modules;
+    return files;
 }
 
 /* ————————————————————————————————
-   UNIVERSAL MODULE LOADER
+   2) UNIVERSUM-LOADER
 ——————————————————————————————— */
 
-async function loadModules(modules) {
-
+async function loadModules(files) {
     const loaded = [];
 
-    for (const m of modules) {
+    for (const f of files) {
         try {
-            if (m.endsWith(".js")) {
-                await import(`./${m}`);
-                loaded.push({ file: m, type: "js", status: "OK" });
+            if (f.endsWith(".js")) {
+                await import(`./${f}`);
+                loaded.push({ file: f, type: "js", status: "OK" });
             }
-            else if (m.endsWith(".json")) {
-                const data = await fetch(`./${m}`).then(r => r.json());
-                loaded.push({ file: m, type: "json", status: "OK", data });
+            else if (f.endsWith(".json")) {
+                const data = await fetch(`./${f}`).then(r => r.json());
+                loaded.push({ file: f, type: "json", status: "OK", data });
             }
-            else if (m.endsWith(".html")) {
-                loaded.push({ file: m, type: "html", status: "OK" });
+            else {
+                loaded.push({ file: f, type: "html", status: "OK" });
             }
-        } catch (e) {
-            loaded.push({ file: m, type: "error", status: "FAIL", error: e });
+        } catch (err) {
+            loaded.push({ file: f, type: "error", status: "FAIL", error: err });
         }
     }
 
@@ -85,79 +97,67 @@ async function loadModules(modules) {
 }
 
 /* ————————————————————————————————
-   UNIVERSAL ENGINE STARTER
+   3) COSMIC VISUALIZER — dein Shader
 ——————————————————————————————— */
 
-function startUniverse(loaded) {
+const canvas = document.createElement("canvas");
+canvas.width = window.innerWidth - 340;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
 
-    console.log("IKI1UC · UNIVERSUM STARTET …");
-    console.log("Geladene Module:", loaded);
+const gl = canvas.getContext("webgl");
 
-    // GLOBAL PALAISE UNIVERSE
-    window.UNIVERSE = {
-        modules: loaded,
-        timestamp: Date.now(),
-        start: "RUN∞",
-        state: {}
-    };
-
-    // Auto‑Start bekannte Engines
-    const autoEngines = [
-        "ALL.ultra.js",
-        "ALL.pipeline12.js",
-        "VECTOR.render.js",
-        "VECTOR.orbit.js",
-        "pipeline12.master.js",
-        "respo_bridge.js",
-        "ghost.js",
-        "ultra.kernel.js",
-        "API.system.js"
-    ];
-
-    for (const engine of autoEngines) {
-        const found = loaded.find(m => m.file.endsWith(engine));
-        if (found) {
-            console.log("Starte Engine:", engine);
-        }
-    }
-
-    // UI Update
-    const out = document.getElementById("modules");
-    out.innerHTML = loaded.map(m =>
-        `<div>${m.status} — ${m.file}</div>`
-    ).join("");
+function compile(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    return sh;
 }
 
-/* ————————————————————————————————
-   BOOTSTRAP
-——————————————————————————————— */
+const vs = compile(gl.VERTEX_SHADER, `
+attribute vec3 position;
+varying vec3 vPos;
+void main() {
+    vPos = position;
+    gl_Position = vec4(position, 1.0);
+}
+`);
 
-(async function bootstrap() {
+const fs = compile(gl.FRAGMENT_SHADER, `
+precision mediump float;
 
-    document.getElementById("status").innerText = "Scanning Repository…";
+uniform float truthAura;
+uniform float mythAura;
+uniform float driftAura;
+uniform float tensorAura;
+uniform float orbitAura;
+uniform float pulseAura;
+uniform float waveAura;
+uniform float fieldAura;
+uniform vec3 elementAura;
 
-    const modules = await scanRepository();
+varying vec3 vPos;
 
-    document.getElementById("status").innerText = "Loading Modules…";
+float waveField(vec3 p, float w) {
+    return sin(p.x * 3.14 + w * 6.28) *
+           cos(p.y * 3.14 + w * 3.14);
+}
 
-    const loaded = await loadModules(modules);
+vec3 chromaticRift(vec3 c, float f) {
+    return vec3(
+        c.r + f * 0.25,
+        c.g + f * 0.10,
+        c.b + f * 0.35
+    );
+}
 
-    document.getElementById("status").innerText = "Starting Universe…";
+vec3 truthBloom(vec3 base, float t) {
+    return base * (1.0 + t * 1.5);
+}
 
-    startUniverse(loaded);
+vec3 mythFog(float m) {
+    return vec3(0.05, 0.05, 0.1) * m;
+}
 
-    document.getElementById("status").innerText = "IKI1UC · UNIVERSUM AKTIV";
-})();
-</script>
-
-</head>
-<body>
-
-<div id="boot">
-    <b>IKI1UC · UNIVERSAL BOOTSTRAP</b><br>
-    <span id="status">Init…</span>
-    <div id="modules"></div>
-</div>
-
-</body>
-</html>
+vec3 fieldDistortion(float f) {
+    return vec3(f * 0.4, f
